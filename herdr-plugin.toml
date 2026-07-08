@@ -18,7 +18,7 @@ command = ["./ensure-open.sh"]
 
 # ウィンドウタイトル書き込み用 paneless デーモンの自動起動
 # 既存セッションには workspace.created が飛ばないため、初回は
-# `herdr plugin action invoke dotfiles.usage-limits:start-title-daemon` で手動起動する
+# `herdr plugin action invoke start-title-daemon --plugin dotfiles.usage-limits` で手動起動する
 [[events]]
 on = "workspace.created"
 command = ["./ensure-title-daemon.sh"]

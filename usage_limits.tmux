@@ -28,5 +28,3 @@ if [[ "${1:-}" == "status" ]]; then
   BUN="$(resolve_bun)" || exit 0
   exec "$BUN" "$CURRENT_DIR/engine.ts"
 fi
-
-tmux set-option -gq @ai_usage_limits_status_command "$CURRENT_DIR/usage_limits.tmux status"
