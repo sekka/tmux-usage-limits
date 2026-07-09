@@ -3,9 +3,11 @@
 ## What this proves
 
 `verify.ts` runs this plugin's REAL entrypoints (`usage_limits.tmux status`,
-`run.sh`) against a fixture `$HOME` seeded with known cache-file contents, and
-asserts the rendered output contains/omits the right status tokens (`CC5`,
-`CCW`, `CCF`, `CX5`, `CXW` — and never the retired `CCS`).
+`run.sh`) against a fixture `$HOME` seeded with known cache-file contents. The
+`tmux-status` check is the hard gate for rendered status tokens (`CC5`, `CCW`,
+`CCF`, `CX5`, `CXW` — and never the retired `CCS`); the `herdr-pane`
+(`run.sh`) check hard-fails entrypoint spawn/render breakage while tolerating
+transient token-timing differences.
 
 Unit tests exercise individual functions in isolation; this harness catches
 what they miss: the entrypoint-chain wiring (`usage_limits.tmux` → `engine.ts`,
@@ -26,6 +28,8 @@ fetch path entirely regardless of whether credentials exist.
 ```
 
 Exit code is 0 iff every non-`best_effort` check in `manifest.json` passes.
+`--self-test` is a meta-check: it deliberately runs an assertion that should
+fail, and exits non-zero only if the assertion engine misses the seeded mismatch.
 `--installed` output is informational only (SKIP/WARN) and never affects the
 exit code — the install layout can be stale or mid-restructure independently
 of whether the source tree is correct.

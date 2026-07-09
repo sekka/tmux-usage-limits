@@ -3,12 +3,12 @@
   "fixtures": [
     {
       "home_path": ".claude/data/usage-limits-cache.json",
-      "template": "fixtures/claude-cache.json",
+      "template": "fixtures/claude-cache.json.tmpl",
       "mode": "0600"
     },
     {
       "home_path": ".codex/cache/tmux-usage-limits-cache.json",
-      "template": "fixtures/codex-cache.json",
+      "template": "fixtures/codex-cache.json.tmpl",
       "mode": "0600"
     }
   ],

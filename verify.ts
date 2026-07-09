@@ -58,7 +58,10 @@ function loadManifest(): Manifest {
 // (CSI sequences like `\x1b[2J`, `\x1b[H`, `\x1b[38;5;240m`) so substring
 // assertions match the logical text regardless of rendering layer.
 export function stripMarkup(s: string): string {
-  return s.replace(/#\[[^\]]*\]/g, "").replace(/\x1b\[[0-9;]*[A-Za-z]/g, "");
+  return s
+    .replace(/#\[[^\]]*\]/g, "")
+    .replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, "")
+    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "");
 }
 
 export interface AssertResult {
@@ -362,7 +365,7 @@ async function runSourceMode(manifest: Manifest): Promise<boolean> {
     for (const check of manifest.checks) {
       const result = await runCheck(check, REPO_ROOT, env);
       printCheckResult(result, "[source] ");
-      if (!result.pass && !result.bestEffort) ok = false;
+      if (!result.pass && !(result.bestEffort && result.ran)) ok = false;
     }
   } finally {
     rmSync(home, { recursive: true, force: true });
