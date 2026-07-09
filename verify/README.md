@@ -87,6 +87,6 @@ pane open --plugin <id> --entrypoint <pane-id> ...`). Confirm the restarted
    (install refuses while a local link exists — unlink first), and restart
    the long-running surfaces again so they run the pinned copy.
 
-Steps 2–3 and 6 are plugin-agnostic; only the list of surfaces in step 4 is
-per-plugin. Another plugin (e.g. `herdr-tab-title`) documents its own surface
-list and reuses the rest verbatim.
+Steps 2 and 6 are plugin-agnostic; step 3's restart commands and step 4's
+surface list are per-plugin. Another plugin (e.g. `herdr-tab-title`) documents
+its own restart commands and surface list, and reuses the rest verbatim.
