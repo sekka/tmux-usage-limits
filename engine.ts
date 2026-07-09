@@ -25,10 +25,20 @@ interface LimitEntry {
   resets_at: string | null;
 }
 
+// One entry of the Anthropic usage API's `limits[]` array. Per-model weekly
+// limits (previously top-level `seven_day_sonnet` etc.) now arrive here as
+// `weekly_scoped` items carrying `scope.model.display_name` (e.g. "Fable").
+interface RawScopedLimit {
+  kind?: string;
+  percent?: number;
+  resets_at?: string | null;
+  scope?: { model?: { display_name?: string | null } | null } | null;
+}
+
 interface UsageLimits {
   five_hour: LimitEntry | null;
   seven_day: LimitEntry | null;
-  seven_day_sonnet: LimitEntry | null;
+  limits?: RawScopedLimit[] | null;
 }
 
 interface CodexUsageWindow {
@@ -149,6 +159,23 @@ export function compute429Record(
     return { data: null, timestamp: 0, nextRetryAt };
   }
   return { data: existing.data, timestamp: existing.timestamp, nextRetryAt };
+}
+
+// Extract the Fable weekly limit from the API's `limits[]` array. Anthropic
+// discontinued the top-level `seven_day_sonnet` field and now emits per-model
+// weekly limits as `weekly_scoped` entries keyed by scope.model.display_name.
+// Not filtered on `is_active` — Fable's limit should show even before it goes
+// active. Returns null when no Fable-scoped weekly entry is present.
+export function fableFromLimits(limits: RawScopedLimit[] | null | undefined): LimitEntry | null {
+  if (!Array.isArray(limits)) return null;
+  const entry = limits.find(
+    (l) => l?.kind === "weekly_scoped" && l?.scope?.model?.display_name === "Fable",
+  );
+  if (!entry || typeof entry.percent !== "number") return null;
+  return {
+    utilization: Math.max(0, Math.min(100, Math.round(entry.percent))),
+    resets_at: typeof entry.resets_at === "string" ? entry.resets_at : null,
+  };
 }
 
 // ============================================================================
@@ -351,7 +378,6 @@ export function normalizeCodexUsage(data: CodexUsageResponse): UsageLimits {
   return {
     five_hour: limitFromCodexWindow(windows.primary_window),
     seven_day: limitFromCodexWindow(windows.secondary_window),
-    seven_day_sonnet: null,
   };
 }
 
@@ -405,7 +431,7 @@ function formatLimit(label: string, limit: LimitEntry, staleMark: string): strin
 }
 
 async function collectParts(args: {
-  labels: { fiveHour: string; sevenDay: string; sevenDaySonnet?: string };
+  labels: { fiveHour: string; sevenDay: string; fable?: string };
   read: () => Promise<{
     data: UsageLimits | null;
     staleness: Staleness;
@@ -444,8 +470,9 @@ async function collectParts(args: {
     parts.push(formatLimit(args.labels.fiveHour, cache.data.five_hour, mark));
   if (cache.data.seven_day)
     parts.push(formatLimit(args.labels.sevenDay, cache.data.seven_day, mark));
-  if (cache.data.seven_day_sonnet && args.labels.sevenDaySonnet) {
-    parts.push(formatLimit(args.labels.sevenDaySonnet, cache.data.seven_day_sonnet, mark));
+  if (args.labels.fable) {
+    const fable = fableFromLimits(cache.data.limits);
+    if (fable) parts.push(formatLimit(args.labels.fable, fable, mark));
   }
 
   if (showStale) {
@@ -466,7 +493,7 @@ async function main(): Promise<void> {
 export async function getUsageStatus(now = Date.now()): Promise<string> {
   const [claudeParts, codexParts] = await Promise.all([
     collectParts({
-      labels: { fiveHour: "CC5", sevenDay: "CCW", sevenDaySonnet: "CCS" },
+      labels: { fiveHour: "CC5", sevenDay: "CCW", fable: "CCF" },
       read: readCache,
       fetchAndCache: fetchAndCacheLimits,
       now,
