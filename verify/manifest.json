@@ -1,0 +1,33 @@
+{
+  "plugin_id": "dotfiles.usage-limits",
+  "fixtures": [
+    {
+      "home_path": ".claude/data/usage-limits-cache.json",
+      "template": "fixtures/claude-cache.json",
+      "mode": "0600"
+    },
+    {
+      "home_path": ".codex/cache/tmux-usage-limits-cache.json",
+      "template": "fixtures/codex-cache.json",
+      "mode": "0600"
+    }
+  ],
+  "checks": [
+    {
+      "name": "tmux-status",
+      "cmd": ["./usage_limits.tmux", "status"],
+      "mode": "oneshot",
+      "expect_present": ["CC5", "CCW", "CCF", "CX5", "CXW"],
+      "expect_absent": ["CCS"]
+    },
+    {
+      "name": "herdr-pane",
+      "cmd": ["./run.sh"],
+      "mode": "render-once",
+      "timeout_ms": 4000,
+      "expect_present": ["CC5", "CCF"],
+      "expect_absent": ["CCS"],
+      "best_effort": true
+    }
+  ]
+}
