@@ -8,7 +8,7 @@ import { getUsageStatus } from "./engine.ts";
 
 export const REFRESH_MS = 60_000;
 
-// tmux-status.ts が使う色語彙 (const t + tmuxBraille) をカバーする基本色テーブル
+// engine.ts が使う色語彙 (const t + tmuxBraille) をカバーする基本色テーブル
 const NAMED_COLORS: Record<string, string> = {
   black: "30",
   red: "31",
