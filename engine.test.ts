@@ -10,6 +10,7 @@ import {
   compute429Record,
   shouldShowStaleMark,
   normalizeCodexUsage,
+  fableFromLimits,
 } from "./engine";
 
 describe("tmuxBraille", () => {
@@ -192,7 +193,6 @@ describe("parseCache", () => {
   const validData = {
     five_hour: { utilization: 28, resets_at: null },
     seven_day: null,
-    seven_day_sonnet: null,
   };
 
   test("正常 JSON → data, timestamp, nextRetryAt を返す", () => {
@@ -307,7 +307,6 @@ describe("compute429Record", () => {
   const validData = {
     five_hour: { utilization: 28, resets_at: null },
     seven_day: null,
-    seven_day_sonnet: null,
   };
   const now = 1_000_000;
   const defaultMs = 60_000;
@@ -461,7 +460,6 @@ describe("normalizeCodexUsage", () => {
       utilization: 67,
       resets_at: "2026-06-25T01:13:20.000Z",
     });
-    expect(result.seven_day_sonnet).toBeNull();
   });
 
   test("Codex percent は 0..100 に丸めて clamp する", () => {
@@ -484,5 +482,73 @@ describe("normalizeCodexUsage", () => {
 
     expect(result.five_hour?.utilization).toBe(100);
     expect(result.seven_day?.utilization).toBe(0);
+  });
+});
+
+describe("fableFromLimits", () => {
+  const fableEntry = {
+    kind: "weekly_scoped",
+    group: "weekly",
+    percent: 12,
+    resets_at: "2026-07-13T12:00:00.000Z",
+    scope: { model: { id: null, display_name: "Fable" }, surface: null },
+    is_active: false,
+  };
+
+  test("weekly_scoped の Fable エントリを percent→utilization に写す", () => {
+    const result = fableFromLimits([
+      { kind: "session", group: "session", percent: 3 },
+      { kind: "weekly_all", group: "weekly", percent: 24 },
+      fableEntry,
+    ]);
+    expect(result).toEqual({ utilization: 12, resets_at: "2026-07-13T12:00:00.000Z" });
+  });
+
+  test("is_active: false でも表示対象 (未使用でも Fable リミットは出す)", () => {
+    const result = fableFromLimits([{ ...fableEntry, is_active: false }]);
+    expect(result).not.toBeNull();
+    expect(result!.utilization).toBe(12);
+  });
+
+  test("percent は 0..100 に丸めて clamp する", () => {
+    expect(fableFromLimits([{ ...fableEntry, percent: 100.7 }])!.utilization).toBe(100);
+    expect(fableFromLimits([{ ...fableEntry, percent: -5 }])!.utilization).toBe(0);
+  });
+
+  test("resets_at が無ければ null", () => {
+    const result = fableFromLimits([{ ...fableEntry, resets_at: null }]);
+    expect(result).toEqual({ utilization: 12, resets_at: null });
+  });
+
+  test("Fable スコープが無ければ null", () => {
+    expect(
+      fableFromLimits([
+        { kind: "session", percent: 3 },
+        { kind: "weekly_scoped", percent: 5, scope: { model: { display_name: "Opus" } } },
+      ]),
+    ).toBeNull();
+  });
+
+  test("weekly_scoped でない Fable っぽいエントリは拾わない", () => {
+    expect(
+      fableFromLimits([
+        { kind: "weekly_all", percent: 9, scope: { model: { display_name: "Fable" } } },
+      ]),
+    ).toBeNull();
+  });
+
+  test("percent が数値でなければ null", () => {
+    expect(
+      fableFromLimits([{ kind: "weekly_scoped", scope: { model: { display_name: "Fable" } } }]),
+    ).toBeNull();
+  });
+
+  test("limits が null/undefined/非配列 → null", () => {
+    expect(fableFromLimits(null)).toBeNull();
+    expect(fableFromLimits(undefined)).toBeNull();
+  });
+
+  test("空配列 → null", () => {
+    expect(fableFromLimits([])).toBeNull();
   });
 });
