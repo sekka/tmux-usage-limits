@@ -59,3 +59,34 @@ Another plugin (e.g. `herdr-tab-title`) adopts the harness by:
 No fixture, command, or token ever needs to be hardcoded into `verify.ts`
 itself — that is what keeps the mechanism deterministic and portable across
 plugins (the mechanism is fixed code; the plugin's specifics are data).
+
+## Pre-release live verification (リリース前動作確認)
+
+`verify.sh` proves the source tree is correct, but the RUNNING plugin is the
+installed copy pinned at a commit in `~/.config/herdr/plugins.json` — merging
+to master never updates it. To judge whether a change is releasable, run the
+working tree AS the live plugin before merging:
+
+1. **Source gate** — `./verify.sh` passes (deterministic, fixture `$HOME`).
+2. **Link the working tree** — `herdr plugin link <dev-checkout-path>`. This
+   replaces the pinned registration with `kind: local` pointing at the working
+   tree; every action, pane, and event now runs dev code.
+3. **Restart long-running surfaces** — daemons and panes keep running old code
+   until restarted. For this plugin: invoke the `stop-title-daemon` /
+   `start-title-daemon` actions and reopen the overlay pane (`herdr plugin
+pane open --plugin <id> --entrypoint <pane-id> ...`). Confirm the restarted
+   process's cwd is the linked tree (`lsof -p <pid> | awk '$4=="cwd"'`).
+4. **Human confirms every user-visible surface** — the release judgment is the
+   human's, made by looking at the real render, not at test output. For this
+   plugin: the overlay pane, the outer window/tab title, and the tmux status
+   line, cross-checked against the provider's usage page.
+5. **Release** — merge to master and push (release-please opens the Release
+   PR).
+6. **Restore the pin** — `herdr plugin unlink <plugin_id>` then
+   `herdr plugin install <owner>/<repo> --ref <released-sha> --yes`
+   (install refuses while a local link exists — unlink first), and restart
+   the long-running surfaces again so they run the pinned copy.
+
+Steps 2–3 and 6 are plugin-agnostic; only the list of surfaces in step 4 is
+per-plugin. Another plugin (e.g. `herdr-tab-title`) documents its own surface
+list and reuses the rest verbatim.
