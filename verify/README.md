@@ -83,9 +83,11 @@ pane open --plugin <id> --entrypoint <pane-id> ...`). Confirm the restarted
 5. **Release** — merge to master and push (release-please opens the Release
    PR).
 6. **Restore the pin** — `herdr plugin unlink <plugin_id>` then
-   `herdr plugin install <owner>/<repo> --ref <released-sha> --yes`
+   `herdr plugin install <owner>/<repo> --ref <merged-master-sha> --yes`
    (install refuses while a local link exists — unlink first), and restart
-   the long-running surfaces again so they run the pinned copy.
+   the long-running surfaces again so they run the pinned copy. Pin the
+   commit just merged to master; the release tag does not exist yet at this
+   point (it is created only when the Release PR from step 5 is merged).
 
 Steps 2 and 6 are plugin-agnostic; step 3's restart commands and step 4's
 surface list are per-plugin. Another plugin (e.g. `herdr-tab-title`) documents
