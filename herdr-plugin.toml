@@ -1,6 +1,6 @@
 id = "dotfiles.usage-limits"
 name = "Usage Limits"
-version = "0.2.0"
+version = "0.3.0"
 min_herdr_version = "0.7.0"
 description = "CC/Codex rate-limit overlay (tmux status-right parity)"
 platforms = ["macos"]
