@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/sekka/ai-usage-limits/compare/v0.3.0...v1.0.0) (2026-07-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* herdr プラグインサポートを削除。herdr 利用者は sekka/herdr-usage-limits へ移行すること。
+
+### Features
+
+* herdr サポートを削除し tmux 専用プラグイン化 ([4e59c97](https://github.com/sekka/ai-usage-limits/commit/4e59c97ee2a56eb148acc64214c939fecddfa243))
+
 ## [0.3.0](https://github.com/sekka/ai-usage-limits/compare/v0.2.0...v0.3.0) (2026-07-10)
 
 
