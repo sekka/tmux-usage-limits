@@ -1,47 +1,22 @@
 # ai-usage-limits
 
-Claude Code / Codex usage-limit display, shared by [herdr](https://herdr.dev) and tmux.
+Claude Code / Codex usage-limit display for tmux.
 
-A single source of behavior (`engine.ts`) reads Claude Code and Codex credentials from the
-standard local files or the macOS keychain, caches the usage API responses with `0600`
-permissions, and renders a tmux-formatted status line. Two frontends consume it: a herdr
-overlay pane (with an outer-window-title daemon and a sidebar summary) and a tmux
-`status-right` command.
+`engine.ts` reads Claude Code and Codex credentials from the standard local files or the
+macOS keychain, caches the usage API responses with `0600` permissions, and renders a
+tmux-formatted status line for `status-right`.
+
+herdr support moved to [sekka/herdr-usage-limits](https://github.com/sekka/herdr-usage-limits).
+Use that plugin for herdr panes, titles, and sidebar integration.
 
 ## Requirements
 
 - [bun](https://bun.sh) — the scripts run on bun (`#!/usr/bin/env bun`). Without bun on
   `PATH` the display is silently empty.
 - macOS — credential lookup falls back to the macOS keychain (`security`).
-- [herdr](https://herdr.dev) `>= 0.7.0` for the herdr plugin (not needed for tmux-only use).
 - A logged-in Claude Code and/or Codex CLI (credentials are read from their standard files).
 
-## Install (herdr)
-
-```sh
-herdr plugin install sekka/ai-usage-limits
-herdr plugin action invoke start-title-daemon --plugin dotfiles.usage-limits
-```
-
-Pin to a released version with `--ref` (release tags are `vX.Y.Z`, see
-[Releasing](#releasing)):
-
-```sh
-herdr plugin install sekka/ai-usage-limits --ref v0.1.0
-```
-
-For local development, link the working copy instead of installing from GitHub:
-
-```sh
-git clone https://github.com/sekka/ai-usage-limits
-herdr plugin link ./ai-usage-limits
-```
-
-The plugin **ID** is `dotfiles.usage-limits`, which differs from the repository name
-(`ai-usage-limits`) — it is kept stable for compatibility with existing key bindings. Every
-`herdr plugin ... --plugin <id>` command takes the ID, not the repository name.
-
-## Install (tmux / TPM)
+## Install
 
 Add the plugin with TPM:
 
@@ -58,19 +33,15 @@ Then call the installed entrypoint from `status-right`:
 
 ## How it works
 
-- `engine.ts` — the shared core: credentials, cache (fresh / stale / expired plus 429
-  backoff), the usage API calls, and the tmux-formatted output. Run directly by
-  `usage_limits.tmux status`.
-- `display.ts` — the herdr overlay pane. Converts the tmux markup to ANSI, reports a short
-  summary to the sidebar agents column, and drives the outer terminal window title.
-- `title-daemon.ts` — a paneless daemon that keeps the outer window title updated.
-- `run.sh`, `ensure-open.sh`, `ensure-title-daemon.sh`, `open-or-focus.sh` — herdr entry and
-  lifecycle helpers (resolve bun, ensure the pane / daemon exist per workspace).
+- `usage_limits.tmux` — the tmux plugin entrypoint. `usage_limits.tmux status` prints the
+  status-right segment.
+- `engine.ts` — credentials, cache (fresh / stale / expired plus 429 backoff), usage API
+  calls, and tmux-formatted output.
 
 ## Tests
 
 ```sh
-bun test ./engine.test.ts ./display.test.ts
+bun test
 ```
 
 ## Releasing
@@ -80,8 +51,8 @@ Releases are automated by [release-please](https://github.com/googleapis/release
 
 1. Land [Conventional Commits](https://www.conventionalcommits.org) on `master` (`feat:`,
    `fix:`, `feat!:` for a breaking change).
-2. release-please maintains a "Release PR" that bumps the version in
-   `herdr-plugin.toml` and writes `CHANGELOG.md` from the commit messages.
+2. release-please maintains a "Release PR" that writes `CHANGELOG.md` from the commit
+   messages.
 3. Merging that PR is the only manual step — it tags `vX.Y.Z` and publishes the GitHub
    Release automatically.
 

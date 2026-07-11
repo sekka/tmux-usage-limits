@@ -1,6 +1,6 @@
 #!/bin/sh
-# Thin repo-root wrapper around verify.ts. Resolves bun the same way
-# run.sh / usage_limits.tmux do, then hands off all args to verify.ts.
+# Thin repo-root wrapper around verify.ts. Resolves bun the same way the tmux
+# entrypoint does, then hands off all args to verify.ts.
 can_run_bun() {
   [ -n "$1" ] && [ -x "$1" ] && "$1" --version >/dev/null 2>&1
 }
