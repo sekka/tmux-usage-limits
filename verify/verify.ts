@@ -16,8 +16,8 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync 
 import { homedir, tmpdir } from "os";
 import path from "path";
 
-const REPO_ROOT = import.meta.dir;
-const VERIFY_DIR = path.join(REPO_ROOT, "verify");
+const REPO_ROOT = path.dirname(import.meta.dir);
+const VERIFY_DIR = import.meta.dir;
 
 // ============================================================================
 // Manifest types (plugin-agnostic contract)

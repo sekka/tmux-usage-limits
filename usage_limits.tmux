@@ -26,5 +26,5 @@ resolve_bun() {
 
 if [[ "${1:-}" == "status" ]]; then
   BUN="$(resolve_bun)" || exit 0
-  exec "$BUN" "$CURRENT_DIR/engine.ts"
+  exec "$BUN" "$CURRENT_DIR/src/engine.ts"
 fi
