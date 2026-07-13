@@ -280,8 +280,8 @@ export async function resolveUsageData(args: ResolveUsageArgs): Promise<Resolved
 | 前提となるファイル構成変更 | core を `src/usage-limits-core.ts` に切り出せば十分                                                                                                                                                | サブツリー化には donor 側でディレクトリ単位の分離が必要。今回は 1 ファイルのみが対象で恩恵が薄い                                                                                                                                       |
 | 2 リポジトリ間の分岐吸収   | 2. の API 設計でキャッシュパスを引数化した結果、core ファイルは両リポジトリで sha256 一致になる → 単純 `cp` で足りる、パッチ再適用不要                                                             | 同様に sha256 一致するため、subtree 特有の「部分マージ」機能は活用されない。history 保持がメリットだが下記の理由で価値が薄い                                                                                                           |
 | リリース運用との整合性     | 両リポジトリとも release-please + Conventional Commits で独立バージョニング(2026-07-11 spec 記載)。sync は手動コミットとして通常の `docs:`/`chore:` prefix で行え、commit-message 規約と衝突しない | subtree pull は squash commit や外部 history を持ち込み、Conventional Commits 前提の release-please 解析(feat!/fix! 等のプレフィックス)と衝突しうる。手動での commit message 整形が結局必要になり subtree の自動化メリットが相殺される |
-| 運用コスト                 | `cp` 1 行 + ソースコミット SHA のヘッダーコメント刻印で十分。個人開発・単一メンテナのため低頻度手動実行で足りる(80% ルール相当の考え方)                                                            | remote 登録・`git subtree pull --squash` のコマンド習熟・失敗時のコンフリクト解決など運用コストが高い。1 ファイルの同期には過剰                                                                                                        |
-| 同期漏れの検知             | ヘッダーコメントの source-commit-sha を `bun test` や `verify.sh` で比較する簡易チェックを追加可能(実装は別タスク)                                                                                 | subtree も自動検知は別途必要であり script 方式に対する優位性なし                                                                                                                                                                       |
+| 運用コスト                 | `cp` だけで十分。実行時は stdout に同期元パスと短縮 SHA を出すが、ファイル内ヘッダーは刻印しない。個人開発・単一メンテナのため低頻度手動実行で足りる(80% ルール相当の考え方)                         | remote 登録・`git subtree pull --squash` のコマンド習熟・失敗時のコンフリクト解決など運用コストが高い。1 ファイルの同期には過剰                                                                                                        |
+| 同期漏れの検知             | 両リポジトリの `src/usage-limits-core.ts` を `diff` / `sha256` で比較する。ファイル内ヘッダーを刻印すると sha256 一致契約が壊れるため採用しない                                                     | subtree も自動検知は別途必要であり script 方式に対する優位性なし                                                                                                                                                                       |
 | 採用可否                   | **採用**                                                                                                                                                                                           | 不採用                                                                                                                                                                                                                                 |
 
 ### 採用案: script 方式
@@ -289,9 +289,12 @@ export async function resolveUsageData(args: ResolveUsageArgs): Promise<Resolved
 - 正典(canonical source)は `tmux-usage-limits/src/usage-limits-core.ts` に置く(2026-07-11 spec で
   herdr-usage-limits は tmux-usage-limits から「コピー」して作られた経緯があり、tmux 側が原本という
   位置づけと整合する)
-- herdr-usage-limits 側に `scripts/sync-core.sh`(または同等の shell script)を置き、
-  `cp ../tmux-usage-limits/src/usage-limits-core.ts ./src/usage-limits-core.ts` を実行した上で、
-  ファイル先頭に `// vendored from tmux-usage-limits@<sha> — DO NOT EDIT DIRECTLY. Run scripts/sync-core.sh` 形式のヘッダーコメントを`git -C ../../tmux-usage-limits rev-parse HEAD` の結果で刻印する
+- herdr-usage-limits 側に `scripts/sync-core.sh`(または同等の shell script)を置く。script は
+  自身の配置ディレクトリを基準に herdr リポジトリ root と隣接する `tmux-usage-limits` を解決し、
+  `tmux-usage-limits/src/usage-limits-core.ts` を `herdr-usage-limits/src/usage-limits-core.ts` へ
+  `cp` する。呼び出し時の cwd には依存しない
+- 実行時は stdout に同期元パスと短縮 SHA を出すが、`usage-limits-core.ts` のファイル内には
+  vendored header を刻印しない。ヘッダーを入れると両リポジトリの sha256 一致という DoD を満たせないため
 - 実行タイミングはメンテナの手動トリガー(tmux-usage-limits の core に変更を加えた後、任意のタイミングで
   herdr-usage-limits 側で実行)。CI 常時実行は導入しない(dotfiles Test Policy と同じ「常時回る基盤は
   持たない」考え方に合わせる — tmux-usage-limits/herdr-usage-limits も同一メンテナの個人プロジェクトであり
@@ -369,5 +372,6 @@ tmux 側にしか反映されない、といったリスクを構造的に許容
 - `usage-limits-core.ts` が `Bun.*` を一切 import/使用しない(`grep -n "Bun\."` の結果が空)
 - credential 読み取りロジック(vendoring スコープ内)が `usage-limits-core.ts` 経由のみになっている
   (`engine.ts` に `find-generic-password` や `.credentials.json` の直接参照が残っていない)
-- 両リポジトリのローカルレビューゲート(codex peer + CodeRabbit、不可時は reviewer-judgment
-  フォールバック)を通過
+- 両リポジトリのローカルレビューゲートを通過。手順は (1) agmsg で codex peer review、(2)
+  `coderabbit review --base master --agent --type all` の妥当な指摘を修正、(3) いずれか不可なら
+  独立 Opus reviewer-judgment、(4) 両レビューまたはフォールバック完了後にのみ "local review passed" と報告
