@@ -84,7 +84,7 @@ export function resetDate(resetsAt: string): string {
 }
 
 function formatLimit(label: string, limit: LimitEntry, staleMark: string): string {
-  let s = `${t.gray}${label}${staleMark}:${t.reset}${tmuxBraille(limit.utilization)} ${t.white}${limit.utilization}%${t.reset}`;
+  let s = `${t.gray}${label}${staleMark}:${t.reset}${tmuxBraille(limit.utilization)} ${t.white}${limit.utilization}${t.reset}${t.gray}%${t.reset}`;
   if (limit.resets_at) {
     s += ` ${t.gray}(${resetDate(limit.resets_at)}|${resetTime(limit.resets_at)})${t.reset}`;
   }
