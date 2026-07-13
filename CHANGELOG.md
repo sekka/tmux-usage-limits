@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.1](https://github.com/sekka/tmux-usage-limits/compare/v1.1.0...v1.1.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* percent の % 記号色を gray に揃える ([26692e3](https://github.com/sekka/tmux-usage-limits/commit/26692e389a107d4a5eaa9e30ac55b02af08f3c56))
+* tmuxBraille に 0-100 clamp を追加し範囲外入力の crash を防ぐ ([4d7153a](https://github.com/sekka/tmux-usage-limits/commit/4d7153a790bd929817fa115c44d68174efea2d47))
+* 同期 fetch 経路のエラーを背景経路と対称に握り潰しステータス消失を防ぐ ([3259357](https://github.com/sekka/tmux-usage-limits/commit/3259357e4fbb77f6a7a9e11d8f1cd46e54e228e2))
+
 ## [1.1.0](https://github.com/sekka/tmux-usage-limits/compare/v1.0.0...v1.1.0) (2026-07-13)
 
 
