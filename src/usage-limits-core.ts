@@ -340,9 +340,13 @@ export async function fetchAndCacheUsage(args: FetchAndCacheArgs): Promise<void>
     await recordFailure(`HTTP ${res.status}`);
     return;
   }
-  const raw = await res.json();
-  const data = args.normalize ? args.normalize(raw) : (raw as UsageLimits);
-  await writeCacheRecord(args.cacheFile, { data, timestamp: now, nextRetryAt: null });
+  try {
+    const raw = await res.json();
+    const data = args.normalize ? args.normalize(raw) : (raw as UsageLimits);
+    await writeCacheRecord(args.cacheFile, { data, timestamp: now, nextRetryAt: null });
+  } catch (error) {
+    await recordFailure(error instanceof Error ? error.message : String(error));
+  }
 }
 
 export async function resolveUsageData(args: ResolveUsageArgs): Promise<ResolvedUsage> {

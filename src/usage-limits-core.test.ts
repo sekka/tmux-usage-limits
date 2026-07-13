@@ -103,4 +103,25 @@ describe("fetchAndCacheUsage failure recording", () => {
     expect(record.data).toEqual(staleData);
     expect(record.nextRetryAt).toBe(now + 60_000);
   });
+
+  test("200 + malformed JSON 時に例外を伝播せず stale marker 付き cache を書く", async () => {
+    const cacheFile = await tempCache(existingRecord(now));
+
+    await fetchAndCacheUsage({
+      cacheFile,
+      token: "x".repeat(20),
+      url: "https://example.invalid/usage",
+      headers: {},
+      now,
+      fetchImpl: async () =>
+        new Response("not json", {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    });
+
+    const record = await readRecord(cacheFile);
+    expect(record.data).toEqual(staleData);
+    expect(record.nextRetryAt).toBe(now + 60_000);
+  });
 });
