@@ -40,14 +40,15 @@ const t = {
 } as const;
 
 export function tmuxBraille(pct: number, len = 5): string {
+  const clamped = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
   const chars = ["⣀", "⣄", "⣤", "⣦", "⣶", "⣷", "⣿"];
   const steps = len * (chars.length - 1);
-  const cur = Math.round((pct / 100) * steps);
+  const cur = Math.round((clamped / 100) * steps);
   const full = Math.floor(cur / (chars.length - 1));
   const partial = cur % (chars.length - 1);
   const empty = len - full - (partial > 0 ? 1 : 0);
   const bar = "⣿".repeat(full) + (partial > 0 ? chars[partial] : "") + "⣀".repeat(empty);
-  const color = pct > 90 ? t.red : pct > 70 ? t.orange : pct > 50 ? t.yellow : t.gray;
+  const color = clamped > 90 ? t.red : clamped > 70 ? t.orange : clamped > 50 ? t.yellow : t.gray;
   return `${color}${bar}${t.reset}`;
 }
 
@@ -84,7 +85,7 @@ export function resetDate(resetsAt: string): string {
 }
 
 function formatLimit(label: string, limit: LimitEntry, staleMark: string): string {
-  let s = `${t.gray}${label}${staleMark}:${t.reset}${tmuxBraille(limit.utilization)} ${t.white}${limit.utilization}%${t.reset}`;
+  let s = `${t.gray}${label}${staleMark}:${t.reset}${tmuxBraille(limit.utilization)} ${t.white}${limit.utilization}${t.reset}${t.gray}%${t.reset}`;
   if (limit.resets_at) {
     s += ` ${t.gray}(${resetDate(limit.resets_at)}|${resetTime(limit.resets_at)})${t.reset}`;
   }

@@ -359,7 +359,9 @@ export async function resolveUsageData(args: ResolveUsageArgs): Promise<Resolved
   });
 
   if (decision === "sync") {
-    await args.fetchAndCache();
+    try {
+      await args.fetchAndCache();
+    } catch {}
     cache = await readCacheFile(args.cacheFile, now);
   } else if (decision === "background") {
     args.fetchAndCache().catch(() => {});
