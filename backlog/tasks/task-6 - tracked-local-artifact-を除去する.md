@@ -1,9 +1,10 @@
 ---
 id: TASK-6
 title: tracked local artifact を除去する
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-07-13 04:04'
+updated_date: '2026-07-13 05:01'
 labels:
   - plugin
   - chore
@@ -39,7 +40,13 @@ ordinal: 6000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 tracked `.DS_Store` が0件
-- [ ] #2 tracked `.claude/` 配下の local file が0件
-- [ ] #3 `.gitignore` が再混入を防ぐ
+- [x] #1 tracked `.DS_Store` が0件
+- [x] #2 tracked `.claude/` 配下の local file が0件
+- [x] #3 `.gitignore` が再混入を防ぐ
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+git ls-files で tracked .DS_Store と .claude/ が0件であることを確認。.gitignore は node_modules/、.DS_Store、.claude/ を含んでおり再混入を防ぐ状態。削除対象は既に無かったため git rm は発生なし。
+<!-- SECTION:FINAL_SUMMARY:END -->
