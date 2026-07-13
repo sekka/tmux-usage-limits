@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/sekka/tmux-usage-limits/compare/v1.0.0...v1.1.0) (2026-07-13)
+
+
+### Features
+
+* usage limits core を追加 ([fac6cc7](https://github.com/sekka/tmux-usage-limits/commit/fac6cc75cba91ee2ab222f7fc55f772b3deca40d))
+
+
+### Bug Fixes
+
+* engine の実行権限を維持 ([d7233fa](https://github.com/sekka/tmux-usage-limits/commit/d7233fa017095cce681ba6629088c4eceaf0a972))
+* malformed JSON でも stale cache を保持 ([229802c](https://github.com/sekka/tmux-usage-limits/commit/229802cddf0fccc70bf47ade33a8bf957192905c))
+
 ## [1.0.0](https://github.com/sekka/ai-usage-limits/compare/v0.3.0...v1.0.0) (2026-07-11)
 
 
