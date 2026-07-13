@@ -5,8 +5,10 @@ Claude Code / Codex usage-limit display for tmux `status-right`.
 Example output:
 
 ```text
-CC5: 61% 1h CCW: 22% 18h40m Fable: 71% 18h40m
+CC5:⣿⣿⣿⣀⣀ 61% (20:54|1h0m) CCW:⣿⣄⣀⣀⣀ 22% (7/14 14:34|18h40m) CCF:⣿⣿⣿⣦⣀ 71% (7/14 01:06|5h12m)
 ```
+
+Gauge = utilization. `(reset time|time remaining)` shows the reset point and remaining time, `?` marks stale cache, and `CX5`/`CXW` appear when Codex usage data is available.
 
 ## Features
 
