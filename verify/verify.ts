@@ -40,7 +40,7 @@ interface CheckSpec {
 }
 
 interface Manifest {
-  plugin_id: string;
+  plugin_id?: string;
   fixtures: FixtureSpec[];
   checks: CheckSpec[];
 }
@@ -295,6 +295,11 @@ interface PluginRegistryEntry {
 }
 
 async function runInstalledMode(manifest: Manifest): Promise<void> {
+  if (!manifest.plugin_id) {
+    console.log("[installed] SKIP: manifest has no herdr plugin_id");
+    return;
+  }
+
   const registryPath = path.join(homedir(), ".config", "herdr", "plugins.json");
   let entries: PluginRegistryEntry[];
   try {

@@ -1,5 +1,4 @@
 {
-  "plugin_id": "dotfiles.usage-limits",
   "fixtures": [
     {
       "home_path": ".claude/data/usage-limits-cache.json",

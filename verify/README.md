@@ -32,9 +32,8 @@ fail, and exits non-zero only if the assertion engine misses the seeded mismatch
 exit code. In this tmux-only repository it usually SKIPs because there is no
 matching entry in the herdr plugin registry.
 
-`plugin_id` intentionally remains in `verify/manifest.json` even for the
-tmux-only repository so the verification harness stays plugin-agnostic; the
-`--installed` path in `verify.ts` still reads it.
+This tmux-only repository does not declare a herdr `plugin_id`; the
+`--installed` path skips herdr registry probing when `manifest.json` omits one.
 
 ## Pre-release live verification (リリース前動作確認)
 
@@ -43,11 +42,11 @@ copy used by tmux through TPM and `status-right`. To judge whether a change is
 releasable, run the working tree AS the live tmux plugin before merging:
 
 1. **Source gate** — `./verify.sh` passes (deterministic, fixture `$HOME`).
-2. **Point TPM at the working tree** — change the dotfiles tmux plugin
-   setting to the local checkout, then reinstall through TPM (`prefix + I`) or
-   reload the config with `tmux source-file`. This makes `status-right`
-   evaluate dev code. Path examples should use the post-rename plugin dir
-   (`~/.tmux/plugins/tmux-usage-limits/...`) or a `<plugin-dir>` placeholder.
+2. **Point TPM at the working tree** — change the tmux plugin setting to the
+   local checkout, then reinstall through TPM (`prefix + I`) or reload the
+   config with `tmux source-file`. This makes `status-right` evaluate dev code.
+   Path examples should use the plugin dir (`~/.tmux/plugins/tmux-usage-limits/...`)
+   or a `<plugin-dir>` placeholder.
 3. **Refresh the status line** — tmux re-evaluates `status-right` on
    `status-interval`. For an immediate check, run `tmux refresh-client -S` or
    reload the config. There is no long-running pane or daemon to restart.
@@ -55,9 +54,8 @@ releasable, run the working tree AS the live tmux plugin before merging:
    human's, made by looking at the real `status-right` render, not at test
    output. Cross-check it against the provider's usage page.
 5. **Release** — merge to master (release-please opens the Release PR).
-6. **Restore the pin** — change the dotfiles tmux plugin setting back to the
-   merged or released ref for `sekka/tmux-usage-limits`, then reinstall through
-   TPM.
+6. **Restore the pin** — change the tmux plugin setting back to the merged or
+   released ref for `sekka/tmux-usage-limits`, then reinstall through TPM.
 
 Steps 1 and 5 are plugin-agnostic; steps 2, 3, and 6 are tmux-specific, and
 step 4's user-visible surface is `status-right`.
