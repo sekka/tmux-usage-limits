@@ -125,3 +125,37 @@ describe("fetchAndCacheUsage failure recording", () => {
     expect(record.nextRetryAt).toBe(now + 60_000);
   });
 });
+
+describe("readCacheFile 読み込み時バリデーション (毒 cache)", () => {
+  const now = 1_000_000;
+  const poisonedData: UsageLimits = {
+    five_hour: { utilization: 42, resets_at: null },
+    seven_day: null,
+  };
+  const YEAR_2033_EPOCH_MS = 2_000_000_000 * 1000;
+
+  test("未来 nextRetryAt (毒 cache) は now + MAX_429_BACKOFF_MS に clamp される (Claude 側経路)", async () => {
+    const cacheFile = await tempCache({
+      data: poisonedData,
+      timestamp: now - 120_000,
+      nextRetryAt: YEAR_2033_EPOCH_MS,
+    });
+
+    const cache = await readCacheFile(cacheFile, now);
+
+    expect(cache.nextRetryAt).toBe(now + 10 * 60 * 1000);
+  });
+
+  test("未来 timestamp (毒 cache) は stale 扱いとなり data を保持しない (Codex 側経路)", async () => {
+    const cacheFile = await tempCache({
+      data: poisonedData,
+      timestamp: YEAR_2033_EPOCH_MS,
+      nextRetryAt: null,
+    });
+
+    const cache = await readCacheFile(cacheFile, now);
+
+    expect(cache.staleness).not.toBe("fresh");
+    expect(cache.data).toBeNull();
+  });
+});
