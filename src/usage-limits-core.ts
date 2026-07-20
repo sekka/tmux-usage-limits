@@ -272,7 +272,9 @@ export async function readCacheFile(
       return { data: null, staleness: "expired", ageMs: Infinity, nextRetryAt: null };
     }
     const nextRetryAt =
-      record.nextRetryAt !== null ? Math.min(record.nextRetryAt, now + MAX_429_BACKOFF_MS) : null;
+      record.nextRetryAt !== null && record.nextRetryAt <= now + MAX_429_BACKOFF_MS
+        ? record.nextRetryAt
+        : null;
     const age = now - record.timestamp;
     const staleness = computeStaleness(record.timestamp, now);
     if (staleness === "expired") {

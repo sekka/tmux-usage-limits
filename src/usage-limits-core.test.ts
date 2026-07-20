@@ -6,6 +6,7 @@ import {
   fetchAndCacheUsage,
   parseCache,
   readCacheFile,
+  shouldFetchNow,
   type CacheRecord,
   type UsageLimits,
 } from "./usage-limits-core";
@@ -134,7 +135,7 @@ describe("readCacheFile 読み込み時バリデーション (毒 cache)", () =>
   };
   const YEAR_2033_EPOCH_MS = 2_000_000_000 * 1000;
 
-  test("未来 nextRetryAt (毒 cache) は now + MAX_429_BACKOFF_MS に clamp される (Claude 側経路)", async () => {
+  test("未来 nextRetryAt (毒 cache) は破棄される (Claude 側経路)", async () => {
     const cacheFile = await tempCache({
       data: poisonedData,
       timestamp: now - 120_000,
@@ -143,7 +144,7 @@ describe("readCacheFile 読み込み時バリデーション (毒 cache)", () =>
 
     const cache = await readCacheFile(cacheFile, now);
 
-    expect(cache.nextRetryAt).toBe(now + 10 * 60 * 1000);
+    expect(cache.nextRetryAt).toBeNull();
   });
 
   test("未来 timestamp (毒 cache) は stale 扱いとなり data を保持しない (Codex 側経路)", async () => {
@@ -155,7 +156,41 @@ describe("readCacheFile 読み込み時バリデーション (毒 cache)", () =>
 
     const cache = await readCacheFile(cacheFile, now);
 
-    expect(cache.staleness).not.toBe("fresh");
+    expect(cache.staleness).toBe("expired");
     expect(cache.data).toBeNull();
+  });
+
+  test("未来 nextRetryAt (毒 cache) でも fetch 判定が永久 skip にならない (Claude 側経路)", async () => {
+    const cacheFile = await tempCache({
+      data: poisonedData,
+      timestamp: now - 6 * 60 * 1000,
+      nextRetryAt: YEAR_2033_EPOCH_MS,
+    });
+
+    const cache = await readCacheFile(cacheFile, now);
+    const decision = shouldFetchNow({
+      staleness: cache.staleness,
+      now,
+      nextRetryAt: cache.nextRetryAt,
+    });
+
+    expect(["background", "sync"]).toContain(decision);
+  });
+
+  test("未来 timestamp (毒 cache) でも fetch 判定が永久 skip にならない (Codex 側経路)", async () => {
+    const cacheFile = await tempCache({
+      data: poisonedData,
+      timestamp: YEAR_2033_EPOCH_MS,
+      nextRetryAt: null,
+    });
+
+    const cache = await readCacheFile(cacheFile, now);
+    const decision = shouldFetchNow({
+      staleness: cache.staleness,
+      now,
+      nextRetryAt: cache.nextRetryAt,
+    });
+
+    expect(["background", "sync"]).toContain(decision);
   });
 });
