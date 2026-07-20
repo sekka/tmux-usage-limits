@@ -179,7 +179,9 @@ function computeFailureRecord(
   const nextRetryAt = Math.min(now + defaultMs, now + maxBackoffMs);
   if (existing === null) return { data: null, timestamp: 0, nextRetryAt };
   const staleTimestamp =
-    existing.data === null ? existing.timestamp : Math.min(existing.timestamp, now - CACHE_FRESH_MS);
+    existing.data === null
+      ? existing.timestamp
+      : Math.min(existing.timestamp, now - CACHE_FRESH_MS);
   return { data: existing.data, timestamp: staleTimestamp, nextRetryAt };
 }
 
@@ -266,13 +268,20 @@ export async function readCacheFile(
   try {
     const record = parseCache(await readFile(cacheFile, "utf8"));
     if (!record) return { data: null, staleness: "expired", ageMs: Infinity, nextRetryAt: null };
+    if (record.timestamp > now) {
+      return { data: null, staleness: "expired", ageMs: Infinity, nextRetryAt: null };
+    }
+    const nextRetryAt =
+      record.nextRetryAt !== null && record.nextRetryAt <= now + MAX_429_BACKOFF_MS
+        ? record.nextRetryAt
+        : null;
     const age = now - record.timestamp;
     const staleness = computeStaleness(record.timestamp, now);
     if (staleness === "expired") {
-      const keepData = record.nextRetryAt !== null && record.nextRetryAt > now ? record.data : null;
-      return { data: keepData, staleness: "expired", ageMs: age, nextRetryAt: record.nextRetryAt };
+      const keepData = nextRetryAt !== null && nextRetryAt > now ? record.data : null;
+      return { data: keepData, staleness: "expired", ageMs: age, nextRetryAt };
     }
-    return { data: record.data, staleness, ageMs: age, nextRetryAt: record.nextRetryAt };
+    return { data: record.data, staleness, ageMs: age, nextRetryAt };
   } catch {
     return { data: null, staleness: "expired", ageMs: Infinity, nextRetryAt: null };
   }
