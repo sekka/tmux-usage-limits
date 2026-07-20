@@ -147,7 +147,7 @@ describe("readCacheFile 読み込み時バリデーション (毒 cache)", () =>
     expect(cache.nextRetryAt).toBeNull();
   });
 
-  test("未来 timestamp (毒 cache) は stale 扱いとなり data を保持しない (Codex 側経路)", async () => {
+  test("未来 timestamp (毒 cache) は expired 扱いで record を破棄する (Codex 側経路)", async () => {
     const cacheFile = await tempCache({
       data: poisonedData,
       timestamp: YEAR_2033_EPOCH_MS,
