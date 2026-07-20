@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.2](https://github.com/sekka/tmux-usage-limits/compare/v1.1.1...v1.1.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* cache 読み込み時に未来 timestamp/nextRetryAt を無害化する ([810120a](https://github.com/sekka/tmux-usage-limits/commit/810120a46d6dd9711b461a2e0afde72d5fcf9eee))
+* cache 読み込み時バリデーションで毒 cache から自己回復する (M1) ([ec22b02](https://github.com/sekka/tmux-usage-limits/commit/ec22b02afd371da227a81363b129d4dcedc7ca10))
+* 毒 cache の fetch 判定を自己回復させる ([d914c38](https://github.com/sekka/tmux-usage-limits/commit/d914c385dfb45a209b2c10215afb527fe8464f32))
+
 ## [1.1.1](https://github.com/sekka/tmux-usage-limits/compare/v1.1.0...v1.1.1) (2026-07-13)
 
 
