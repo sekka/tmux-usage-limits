@@ -4,6 +4,7 @@ set -euo pipefail
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_STAMP="$CURRENT_DIR/node_modules/.install-stamp"
 INSTALL_LOCK_DIR="$CURRENT_DIR/node_modules/.install-lock"
+INSTALL_LOCK_PID_FILE="$INSTALL_LOCK_DIR/pid"
 INSTALL_LOCK_STALE_SECONDS=120
 
 can_run_bun() {
@@ -44,17 +45,17 @@ ensure_dependencies() {
   fi
 
   if dependencies_are_current "$lock_checksum"; then
-    rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+    release_install_lock
     return 0
   fi
 
   if "$BUN" install --cwd "$CURRENT_DIR" --frozen-lockfile --silent >/dev/null 2>&1; then
     printf '%s\n' "$lock_checksum" >"$INSTALL_STAMP"
-    rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+    release_install_lock
     return 0
   fi
 
-  rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+  release_install_lock
   return 1
 }
 
@@ -76,21 +77,50 @@ dependencies_are_current() {
 
 acquire_install_lock() {
   if mkdir -p "$CURRENT_DIR/node_modules" 2>/dev/null && mkdir "$INSTALL_LOCK_DIR" 2>/dev/null; then
+    if ! printf '%s\n' "$$" >"$INSTALL_LOCK_PID_FILE"; then
+      rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+      return 1
+    fi
     return 0
   fi
 
   if install_lock_is_stale; then
-    rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
-    mkdir "$INSTALL_LOCK_DIR" 2>/dev/null
-    return $?
+    release_install_lock
+    if mkdir "$INSTALL_LOCK_DIR" 2>/dev/null; then
+      if ! printf '%s\n' "$$" >"$INSTALL_LOCK_PID_FILE"; then
+        release_install_lock
+        return 1
+      fi
+      return 0
+    fi
+    return 1
   fi
 
   return 1
 }
 
+release_install_lock() {
+  rm -f "$INSTALL_LOCK_PID_FILE" 2>/dev/null || true
+  rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+}
+
 install_lock_is_stale() {
   if [[ ! -d "$INSTALL_LOCK_DIR" ]]; then
     return 1
+  fi
+
+  local lock_pid=""
+  if [[ -f "$INSTALL_LOCK_PID_FILE" ]]; then
+    lock_pid="$(<"$INSTALL_LOCK_PID_FILE")"
+  fi
+
+  if [[ "$lock_pid" =~ ^[0-9]+$ ]]; then
+    local kill_error
+    kill_error="$(kill -0 "$lock_pid" 2>&1)" && return 1
+    case "$kill_error" in
+      *"Operation not permitted"* | *"not permitted"*) return 1 ;;
+      *) return 0 ;;
+    esac
   fi
 
   local lock_mtime now
