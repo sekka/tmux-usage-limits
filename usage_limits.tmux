@@ -24,7 +24,20 @@ resolve_bun() {
   return 1
 }
 
+ensure_dependencies() {
+  if [[ -d "$CURRENT_DIR/node_modules/usage-limits-core" ]]; then
+    return 0
+  fi
+
+  if [[ ! -f "$CURRENT_DIR/package.json" || ! -f "$CURRENT_DIR/bun.lock" ]]; then
+    return 1
+  fi
+
+  "$BUN" install --cwd "$CURRENT_DIR" --frozen-lockfile --silent >/dev/null 2>&1
+}
+
 if [[ "${1:-}" == "status" ]]; then
   BUN="$(resolve_bun)" || exit 0
+  ensure_dependencies || exit 0
   exec "$BUN" "$CURRENT_DIR/src/engine.ts"
 fi
