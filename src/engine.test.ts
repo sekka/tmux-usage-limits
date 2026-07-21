@@ -497,15 +497,15 @@ describe("fableFromLimits", () => {
 
   test("weekly_scoped の Fable エントリを percent→utilization に写す", () => {
     const result = fableFromLimits([
-      { kind: "session", group: "session", percent: 3 },
-      { kind: "weekly_all", group: "weekly", percent: 24 },
+      { kind: "session", percent: 3 },
+      { kind: "weekly_all", percent: 24 },
       fableEntry,
     ]);
     expect(result).toEqual({ utilization: 12, resets_at: "2026-07-13T12:00:00.000Z" });
   });
 
   test("is_active: false でも表示対象 (未使用でも Fable リミットは出す)", () => {
-    const result = fableFromLimits([{ ...fableEntry, is_active: false }]);
+    const result = fableFromLimits([fableEntry]);
     expect(result).not.toBeNull();
     expect(result!.utilization).toBe(12);
   });
