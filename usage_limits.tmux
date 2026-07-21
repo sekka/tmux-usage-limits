@@ -2,6 +2,9 @@
 set -euo pipefail
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_STAMP="$CURRENT_DIR/node_modules/.install-stamp"
+INSTALL_LOCK_DIR="$CURRENT_DIR/node_modules/.install-lock"
+INSTALL_LOCK_STALE_SECONDS=120
 
 can_run_bun() {
   [[ -n "${1:-}" && -x "$1" ]] && "$1" --version >/dev/null 2>&1
@@ -25,15 +28,76 @@ resolve_bun() {
 }
 
 ensure_dependencies() {
-  if [[ -d "$CURRENT_DIR/node_modules/usage-limits-core" ]]; then
-    return 0
-  fi
-
   if [[ ! -f "$CURRENT_DIR/package.json" || ! -f "$CURRENT_DIR/bun.lock" ]]; then
     return 1
   fi
 
-  "$BUN" install --cwd "$CURRENT_DIR" --frozen-lockfile --silent >/dev/null 2>&1
+  local lock_checksum
+  lock_checksum="$(bun_lock_checksum)" || return 1
+
+  if dependencies_are_current "$lock_checksum"; then
+    return 0
+  fi
+
+  if ! acquire_install_lock; then
+    return 1
+  fi
+
+  if dependencies_are_current "$lock_checksum"; then
+    rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+    return 0
+  fi
+
+  if "$BUN" install --cwd "$CURRENT_DIR" --frozen-lockfile --silent >/dev/null 2>&1; then
+    printf '%s\n' "$lock_checksum" >"$INSTALL_STAMP"
+    rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+    return 0
+  fi
+
+  rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+  return 1
+}
+
+bun_lock_checksum() {
+  local checksum
+  checksum="$(shasum -a 256 "$CURRENT_DIR/bun.lock")" || return 1
+  printf '%s\n' "${checksum%% *}"
+}
+
+dependencies_are_current() {
+  local expected="$1"
+  local actual=""
+  if [[ -f "$INSTALL_STAMP" ]]; then
+    actual="$(<"$INSTALL_STAMP")"
+  fi
+
+  [[ -d "$CURRENT_DIR/node_modules/usage-limits-core" && "$actual" == "$expected" ]]
+}
+
+acquire_install_lock() {
+  if mkdir -p "$CURRENT_DIR/node_modules" 2>/dev/null && mkdir "$INSTALL_LOCK_DIR" 2>/dev/null; then
+    return 0
+  fi
+
+  if install_lock_is_stale; then
+    rmdir "$INSTALL_LOCK_DIR" 2>/dev/null || true
+    mkdir "$INSTALL_LOCK_DIR" 2>/dev/null
+    return $?
+  fi
+
+  return 1
+}
+
+install_lock_is_stale() {
+  if [[ ! -d "$INSTALL_LOCK_DIR" ]]; then
+    return 1
+  fi
+
+  local lock_mtime now
+  lock_mtime="$(stat -f %m "$INSTALL_LOCK_DIR" 2>/dev/null)" || return 1
+  now="$(date +%s)" || return 1
+
+  (( now - lock_mtime >= INSTALL_LOCK_STALE_SECONDS ))
 }
 
 if [[ "${1:-}" == "status" ]]; then
