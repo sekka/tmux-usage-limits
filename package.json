@@ -1,0 +1,14 @@
+{
+  "name": "tmux-usage-limits",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "usage-limits-core": "github:sekka/usage-limits-core#v1.0.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.5"
+  }
+}
