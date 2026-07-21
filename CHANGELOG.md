@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.3](https://github.com/sekka/tmux-usage-limits/compare/v1.1.2...v1.1.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* install lock の stale 判定を PID 生存確認にする ([3feab80](https://github.com/sekka/tmux-usage-limits/commit/3feab80c3e5a0264ec5ebbd1b09ea668329e5a3c))
+* status entrypoint で依存を自動復元する ([fc09709](https://github.com/sekka/tmux-usage-limits/commit/fc097091bcd34a924d6aca5ea4694836801d10b2))
+* 依存 install guard の鮮度判定と排他を追加 ([9954941](https://github.com/sekka/tmux-usage-limits/commit/995494132d63901bcd72ae9e4d5d97127e8844d1))
+
 ## [1.1.2](https://github.com/sekka/tmux-usage-limits/compare/v1.1.1...v1.1.2) (2026-07-20)
 
 
