@@ -68,7 +68,7 @@ There are currently no public plugin configuration options. Change placement, re
 
 `usage_limits.tmux` is the tmux plugin entrypoint. `usage_limits.tmux status` resolves bun and runs the TypeScript engine.
 
-`src/engine.ts` handles credentials, cache freshness, usage API calls, stale output, 429 backoff, and tmux-formatted output. Shared usage-limit parsing lives in `src/usage-limits-core.ts`.
+`src/engine.ts` handles tmux-specific formatting and wiring. Shared credential, usage API, cache, stale output, 429 backoff, and stampede-lock behavior comes from the `usage-limits-core` package.
 
 ## Troubleshooting
 

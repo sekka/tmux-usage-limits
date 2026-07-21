@@ -11,7 +11,7 @@ import {
   resolveUsageData,
   type LimitEntry,
   type UsageLimits,
-} from "./usage-limits-core";
+} from "usage-limits-core";
 
 export {
   compute429Record,
@@ -22,7 +22,7 @@ export {
   parseRetryAfter,
   shouldFetchNow,
   shouldShowStaleMark,
-} from "./usage-limits-core";
+} from "usage-limits-core";
 
 const HOME = homedir();
 const CLAUDE_CACHE_FILE = `${HOME}/.claude/data/usage-limits-cache.json`;
@@ -100,6 +100,7 @@ async function collectParts(args: {
 }): Promise<string[]> {
   const resolved = await resolveUsageData({
     cacheFile: args.cacheFile,
+    lockFile: `${args.cacheFile}.lock`,
     fetchAndCache: args.fetchAndCache,
     now: args.now,
   });
