@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.4](https://github.com/sekka/tmux-usage-limits/compare/v1.1.3...v1.1.4) (2026-07-22)
+
+
+### Bug Fixes
+
+* verify.ts のエラーハンドリングを強化する (TASK-3) ([915903d](https://github.com/sekka/tmux-usage-limits/commit/915903dda1d505a67fa42ab510a6f380f8048e8e))
+* レビュー指摘を反映する (registry 要素検証・render-once の exit code 判定) ([0e9c7cd](https://github.com/sekka/tmux-usage-limits/commit/0e9c7cd688c4a99e2b0ba442a3497965cf916c2f))
+
 ## [1.1.3](https://github.com/sekka/tmux-usage-limits/compare/v1.1.2...v1.1.3) (2026-07-21)
 
 
