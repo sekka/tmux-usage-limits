@@ -109,13 +109,18 @@ function selfTest(): boolean {
 function setupFixtureHome(manifest: Manifest): string {
   const home = mkdtempSync(path.join(tmpdir(), "hverify-"));
   const now = String(Date.now());
-  for (const fixture of manifest.fixtures) {
-    const templatePath = path.join(VERIFY_DIR, fixture.template);
-    const rendered = readFileSync(templatePath, "utf8").replaceAll("__TIMESTAMP__", now);
-    const destPath = path.join(home, fixture.home_path);
-    mkdirSync(path.dirname(destPath), { recursive: true, mode: 0o700 });
-    writeFileSync(destPath, rendered);
-    chmodSync(destPath, parseInt(fixture.mode ?? "0600", 8));
+  try {
+    for (const fixture of manifest.fixtures) {
+      const templatePath = path.join(VERIFY_DIR, fixture.template);
+      const rendered = readFileSync(templatePath, "utf8").replaceAll("__TIMESTAMP__", now);
+      const destPath = path.join(home, fixture.home_path);
+      mkdirSync(path.dirname(destPath), { recursive: true, mode: 0o700 });
+      writeFileSync(destPath, rendered);
+      chmodSync(destPath, parseInt(fixture.mode ?? "0600", 8));
+    }
+  } catch (e) {
+    rmSync(home, { recursive: true, force: true });
+    throw e;
   }
   return home;
 }
@@ -147,9 +152,19 @@ async function runOneshot(
   cmd: string[],
   cwd: string,
   env: Record<string, string>,
+  timeoutMs: number,
 ): Promise<RunOutcome> {
   try {
-    const proc = Bun.spawn({ cmd, cwd, env, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+    const proc = Bun.spawn({
+      cmd,
+      cwd,
+      env,
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: timeoutMs,
+      killSignal: "SIGKILL",
+    });
     const [stdout, stderr, code] = await Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),
@@ -211,7 +226,7 @@ async function runRenderOnce(
       // reader may already be released/errored — non-fatal
     }
     try {
-      proc.kill();
+      proc.kill("SIGKILL");
     } catch {
       // process may have already exited — non-fatal
     }
@@ -246,7 +261,7 @@ async function runCheck(
           check.timeout_ms ?? 4000,
           check.expect_present ?? [],
         )
-      : await runOneshot(check.cmd, cwd, env);
+      : await runOneshot(check.cmd, cwd, env, check.timeout_ms ?? 4000);
 
   if (outcome.error && outcome.stdout === "") {
     return {
@@ -265,7 +280,9 @@ async function runCheck(
     name: check.name,
     bestEffort,
     ran: true,
-    pass: assertion.pass,
+    // A nonzero exit is a failure even if the expected tokens happen to be
+    // present in stdout — the command itself did not complete cleanly.
+    pass: assertion.pass && !outcome.error,
     missing: assertion.missing,
     forbidden: assertion.forbidden,
     error: outcome.error,
@@ -273,7 +290,13 @@ async function runCheck(
 }
 
 function printCheckResult(result: CheckResult, prefix: string): void {
-  const status = result.pass ? "PASS" : result.bestEffort ? "WARN (best-effort)" : "FAIL";
+  // best_effort only downgrades an assertion mismatch; a check that could not
+  // even run is a FAIL regardless (matches runSourceMode's exit-code logic).
+  const status = result.pass
+    ? "PASS"
+    : result.bestEffort && result.ran
+      ? "WARN (best-effort)"
+      : "FAIL";
   console.log(`${prefix}${result.name}: ${status}`);
   if (!result.pass) {
     if (result.missing.length > 0)
@@ -303,7 +326,9 @@ async function runInstalledMode(manifest: Manifest): Promise<void> {
   const registryPath = path.join(homedir(), ".config", "herdr", "plugins.json");
   let entries: PluginRegistryEntry[];
   try {
-    entries = JSON.parse(readFileSync(registryPath, "utf8"));
+    const parsed: unknown = JSON.parse(readFileSync(registryPath, "utf8"));
+    if (!Array.isArray(parsed)) throw new Error("plugins.json is not an array");
+    entries = parsed as PluginRegistryEntry[];
   } catch {
     console.log(
       `[installed] SKIP: could not read ${registryPath} (herdr not installed, or no plugins registered)`,
@@ -324,13 +349,18 @@ async function runInstalledMode(manifest: Manifest): Promise<void> {
   }
 
   try {
-    const head = (
-      await new Response(
-        Bun.spawn({ cmd: ["git", "rev-parse", "HEAD"], cwd: REPO_ROOT, stdout: "pipe" }).stdout,
-      ).text()
-    ).trim();
+    const gitProc = Bun.spawn({
+      cmd: ["git", "rev-parse", "HEAD"],
+      cwd: REPO_ROOT,
+      stdout: "pipe",
+      stderr: "ignore",
+    });
+    const [head, gitCode] = await Promise.all([
+      new Response(gitProc.stdout).text().then((s) => s.trim()),
+      gitProc.exited,
+    ]);
     const resolved = entry.source?.resolved_commit;
-    if (resolved && resolved !== head) {
+    if (gitCode === 0 && resolved && resolved !== head) {
       console.log(
         `[installed] WARNING: installed copy is at commit ${resolved.slice(0, 12)}, working tree HEAD is ${head.slice(0, 12)}.`,
       );
