@@ -33,7 +33,7 @@ task-49(dotfiles TASK-49 参照) のローカルレビューで CodeRabbit (2026
 <!-- AC:BEGIN -->
 - [x] #1 各 CodeRabbit 指摘を現行コードで検証し、valid なもののみ修正した
 - [x] #2 bun test と ./verify/verify.sh が pass
-- [ ] #3 ローカルレビューゲート通過
+- [x] #3 ローカルレビューゲート通過
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -49,4 +49,6 @@ task-49(dotfiles TASK-49 参照) のローカルレビューで CodeRabbit (2026
 - runRenderOnce cleanup: proc.kill("SIGKILL")
 - setupFixtureHome: fixture 生成失敗時に mkdtemp した home を rmSync してから rethrow
 - git rev-parse HEAD: exited を await し exit 0 のときのみ staleness 比較
+
+2026-07-22 レビューゲート: CodeRabbit major 1件 (plugins.json 配列要素の non-null object 検証) と codex peer (tmuxrev) Warning 2件 (同上 + runRenderOnce が自発 nonzero-exit の code を捨てて pass になる) を反映。bun test 79 pass / self-test OK / verify PASS を再確認。
 <!-- SECTION:NOTES:END -->

@@ -200,6 +200,8 @@ async function runRenderOnce(
   const decoder = new TextDecoder();
   let acc = "";
   const deadline = Date.now() + timeoutMs;
+  let exitedEarly = false;
+  let exitCodeEarly = 0;
 
   try {
     for (;;) {
@@ -225,6 +227,10 @@ async function runRenderOnce(
     } catch {
       // reader may already be released/errored — non-fatal
     }
+    if (proc.exitCode !== null) {
+      exitedEarly = true;
+      exitCodeEarly = proc.exitCode;
+    }
     try {
       proc.kill("SIGKILL");
     } catch {
@@ -233,6 +239,12 @@ async function runRenderOnce(
     await proc.exited.catch(() => {});
   }
 
+  // A nonzero self-exit (before our SIGKILL) is a real failure even if the
+  // expected tokens were already emitted. Our own kill of a healthy looping
+  // process is the normal path and must not count as an error.
+  if (exitedEarly && exitCodeEarly !== 0) {
+    return { stdout: acc, error: `exited ${exitCodeEarly}` };
+  }
   return { stdout: acc };
 }
 
@@ -327,7 +339,12 @@ async function runInstalledMode(manifest: Manifest): Promise<void> {
   let entries: PluginRegistryEntry[];
   try {
     const parsed: unknown = JSON.parse(readFileSync(registryPath, "utf8"));
-    if (!Array.isArray(parsed)) throw new Error("plugins.json is not an array");
+    if (
+      !Array.isArray(parsed) ||
+      !parsed.every((entry) => entry !== null && typeof entry === "object")
+    ) {
+      throw new Error("plugins.json is not an array of objects");
+    }
     entries = parsed as PluginRegistryEntry[];
   } catch {
     console.log(
