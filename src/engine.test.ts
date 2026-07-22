@@ -72,16 +72,11 @@ describe("tmuxBraille", () => {
     expect(barChars.length).toBe(3);
   });
 
-  test("50% → 約半分埋まったバー", () => {
+  test("50% → ⣿⣿⣦⣀⣀ (full 2 + partial 1 + empty 2)", () => {
+    // steps=30, cur=15 → full=floor(15/6)=2, partial=15%6=3 (chars[3]=⣦), empty=2
     const result = tmuxBraille(50);
-    const brailleChars = ["⣀", "⣄", "⣤", "⣦", "⣶", "⣷", "⣿"];
     const stripped = result.replace(/#\[[^\]]*\]/g, "");
-    const barChars = [...stripped].filter((c) => brailleChars.includes(c));
-    expect(barChars.length).toBe(5);
-    // At 50%, some chars should be partially filled (not all ⣀ and not all ⣿)
-    const hasPartialFill = barChars.some((c) => c !== "⣀" && c !== "⣿");
-    const hasFullFill = barChars.some((c) => c === "⣿");
-    expect(hasPartialFill || hasFullFill).toBe(true);
+    expect(stripped).toBe("⣿⣿⣦⣀⣀");
   });
 });
 
@@ -564,6 +559,10 @@ describe("fableFromLimits", () => {
   test("limits が null/undefined/非配列 → null", () => {
     expect(fableFromLimits(null)).toBeNull();
     expect(fableFromLimits(undefined)).toBeNull();
+    expect(fableFromLimits({} as never)).toBeNull();
+    expect(fableFromLimits({ length: 1 } as never)).toBeNull();
+    expect(fableFromLimits("weekly_scoped" as never)).toBeNull();
+    expect(fableFromLimits(42 as never)).toBeNull();
   });
 
   test("空配列 → null", () => {
