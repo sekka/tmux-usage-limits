@@ -25,6 +25,24 @@ describe("tmuxBraille", () => {
     expect(result).toContain("⣿⣿⣿⣿⣿");
   });
 
+  test("負値 → 0 に clamp され全て ⣀、グレー色", () => {
+    const result = tmuxBraille(-10);
+    expect(result).toContain("⣀⣀⣀⣀⣀");
+    expect(result).toContain("#[fg=colour240]");
+  });
+
+  test("100超 → 100 に clamp され全て ⣿、レッド", () => {
+    const result = tmuxBraille(150);
+    expect(result).toContain("⣿⣿⣿⣿⣿");
+    expect(result).toContain("#[fg=brightred]");
+  });
+
+  test("NaN/Infinity → 0 扱いで全て ⣀", () => {
+    expect(tmuxBraille(NaN)).toContain("⣀⣀⣀⣀⣀");
+    expect(tmuxBraille(Infinity)).toContain("⣀⣀⣀⣀⣀");
+    expect(tmuxBraille(-Infinity)).toContain("⣀⣀⣀⣀⣀");
+  });
+
   test("カラー閾値: <=50 → グレー", () => {
     const result = tmuxBraille(50);
     expect(result).toContain("#[fg=colour240]");
