@@ -25,6 +25,24 @@ describe("tmuxBraille", () => {
     expect(result).toContain("⣿⣿⣿⣿⣿");
   });
 
+  test("負値 → 0 に clamp され全て ⣀、グレー色", () => {
+    const result = tmuxBraille(-10);
+    expect(result).toContain("⣀⣀⣀⣀⣀");
+    expect(result).toContain("#[fg=colour240]");
+  });
+
+  test("100超 → 100 に clamp され全て ⣿、レッド", () => {
+    const result = tmuxBraille(150);
+    expect(result).toContain("⣿⣿⣿⣿⣿");
+    expect(result).toContain("#[fg=brightred]");
+  });
+
+  test("NaN/Infinity → 0 扱いで全て ⣀", () => {
+    expect(tmuxBraille(NaN)).toContain("⣀⣀⣀⣀⣀");
+    expect(tmuxBraille(Infinity)).toContain("⣀⣀⣀⣀⣀");
+    expect(tmuxBraille(-Infinity)).toContain("⣀⣀⣀⣀⣀");
+  });
+
   test("カラー閾値: <=50 → グレー", () => {
     const result = tmuxBraille(50);
     expect(result).toContain("#[fg=colour240]");
@@ -54,16 +72,11 @@ describe("tmuxBraille", () => {
     expect(barChars.length).toBe(3);
   });
 
-  test("50% → 約半分埋まったバー", () => {
+  test("50% → ⣿⣿⣦⣀⣀ (full 2 + partial 1 + empty 2)", () => {
+    // steps=30, cur=15 → full=floor(15/6)=2, partial=15%6=3 (chars[3]=⣦), empty=2
     const result = tmuxBraille(50);
-    const brailleChars = ["⣀", "⣄", "⣤", "⣦", "⣶", "⣷", "⣿"];
     const stripped = result.replace(/#\[[^\]]*\]/g, "");
-    const barChars = [...stripped].filter((c) => brailleChars.includes(c));
-    expect(barChars.length).toBe(5);
-    // At 50%, some chars should be partially filled (not all ⣀ and not all ⣿)
-    const hasPartialFill = barChars.some((c) => c !== "⣀" && c !== "⣿");
-    const hasFullFill = barChars.some((c) => c === "⣿");
-    expect(hasPartialFill || hasFullFill).toBe(true);
+    expect(stripped).toBe("⣿⣿⣦⣀⣀");
   });
 });
 
@@ -546,6 +559,10 @@ describe("fableFromLimits", () => {
   test("limits が null/undefined/非配列 → null", () => {
     expect(fableFromLimits(null)).toBeNull();
     expect(fableFromLimits(undefined)).toBeNull();
+    expect(fableFromLimits({} as never)).toBeNull();
+    expect(fableFromLimits({ length: 1 } as never)).toBeNull();
+    expect(fableFromLimits("weekly_scoped" as never)).toBeNull();
+    expect(fableFromLimits(42 as never)).toBeNull();
   });
 
   test("空配列 → null", () => {
